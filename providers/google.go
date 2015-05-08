@@ -25,7 +25,7 @@ func NewGoogleProvider(p *ProviderData) *GoogleProvider {
 			Path: "/o/oauth2/token"}
 	}
 	if p.Scope == "" {
-		p.Scope = "profile email"
+		p.Scope = "email"
 	}
 	return &GoogleProvider{ProviderData: p}
 }
