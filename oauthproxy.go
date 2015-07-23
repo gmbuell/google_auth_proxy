@@ -172,20 +172,6 @@ func (p *OauthProxy) GetRedirectURI(host string) string {
 	return u.String()
 }
 
-func (p *OauthProxy) GetLoginURL(host, redirect string) string {
-	params := url.Values{}
-	params.Add("redirect_uri", p.GetRedirectUrl(host))
-	params.Add("approval_prompt", "auto")
-	params.Add("access_type", "online")
-	params.Add("scope", p.oauthScope)
-	params.Add("client_id", p.clientID)
-	params.Add("response_type", "code")
-	if strings.HasPrefix(redirect, "/") {
-		params.Add("state", redirect)
-	}
-	return fmt.Sprintf("%s?%s", p.oauthLoginUrl, params.Encode())
-}
-
 func (p *OauthProxy) displayCustomLoginForm() bool {
 	return p.HtpasswdFile != nil && p.DisplayHtpasswdForm
 }
