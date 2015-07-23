@@ -1,15 +1,13 @@
 package providers
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 
-	"github.com/bitly/go-simplejson"
-	"github.com/bitly/google_auth_proxy/api"
+	"github.com/bitly/oauth2_proxy/api"
 )
 
 type LinkedInProvider struct {
@@ -33,25 +31,32 @@ func NewLinkedInProvider(p *ProviderData) *LinkedInProvider {
 			Host: "www.linkedin.com",
 			Path: "/v1/people/~/email-address"}
 	}
+	if p.ValidateUrl.String() == "" {
+		p.ValidateUrl = p.ProfileUrl
+	}
 	if p.Scope == "" {
 		p.Scope = "r_emailaddress r_basicprofile"
 	}
 	return &LinkedInProvider{ProviderData: p}
 }
 
-func (p *LinkedInProvider) GetEmailAddress(unused_auth_response *simplejson.Json,
-	access_token string) (string, error) {
-	if access_token == "" {
+func getLinkedInHeader(access_token string) http.Header {
+	header := make(http.Header)
+	header.Set("Accept", "application/json")
+	header.Set("x-li-format", "json")
+	header.Set("Authorization", fmt.Sprintf("Bearer %s", access_token))
+	return header
+}
+
+func (p *LinkedInProvider) GetEmailAddress(s *SessionState) (string, error) {
+	if s.AccessToken == "" {
 		return "", errors.New("missing access token")
 	}
-	params := url.Values{}
-	req, err := http.NewRequest("GET", p.ProfileUrl.String()+"?format=json", bytes.NewBufferString(params.Encode()))
+	req, err := http.NewRequest("GET", p.ProfileUrl.String()+"?format=json", nil)
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("x-li-format", "json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", access_token))
+	req.Header = getLinkedInHeader(s.AccessToken)
 
 	json, err := api.Request(req)
 	if err != nil {
@@ -65,4 +70,8 @@ func (p *LinkedInProvider) GetEmailAddress(unused_auth_response *simplejson.Json
 		return "", err
 	}
 	return email, nil
+}
+
+func (p *LinkedInProvider) ValidateSessionState(s *SessionState) bool {
+	return validateToken(p, s.AccessToken, getLinkedInHeader(s.AccessToken))
 }

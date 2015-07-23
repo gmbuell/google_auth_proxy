@@ -5,8 +5,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/bitly/go-simplejson"
-	"github.com/bitly/google_auth_proxy/api"
+	"github.com/bitly/oauth2_proxy/api"
 )
 
 type MyUsaProvider struct {
@@ -32,16 +31,20 @@ func NewMyUsaProvider(p *ProviderData) *MyUsaProvider {
 			Host: myUsaHost,
 			Path: "/api/v1/profile"}
 	}
+	if p.ValidateUrl.String() == "" {
+		p.ValidateUrl = &url.URL{Scheme: "https",
+			Host: myUsaHost,
+			Path: "/api/v1/tokeninfo"}
+	}
 	if p.Scope == "" {
 		p.Scope = "profile.email"
 	}
 	return &MyUsaProvider{ProviderData: p}
 }
 
-func (p *MyUsaProvider) GetEmailAddress(auth_response *simplejson.Json,
-	access_token string) (string, error) {
+func (p *MyUsaProvider) GetEmailAddress(s *SessionState) (string, error) {
 	req, err := http.NewRequest("GET",
-		p.ProfileUrl.String()+"?access_token="+access_token, nil)
+		p.ProfileUrl.String()+"?access_token="+s.AccessToken, nil)
 	if err != nil {
 		log.Printf("failed building request %s", err)
 		return "", err
